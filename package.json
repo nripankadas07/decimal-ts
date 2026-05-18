@@ -1,0 +1,46 @@
+{
+  "name": "decimal-ts",
+  "version": "0.1.0",
+  "description": "Arbitrary-precision fixed-point decimal arithmetic for TypeScript: BigInt coefficient + exponent, seven rounding modes, zero runtime dependencies, fully typed.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "test:coverage": "jest --coverage",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "decimal",
+    "fixed-point",
+    "arbitrary-precision",
+    "bignum",
+    "bigint",
+    "arithmetic",
+    "rounding",
+    "typescript",
+    "money"
+  ],
+  "author": "nripankadas07",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nripankadas07/decimal-ts.git"
+  },
+  "homepage": "https://github.com/nripankadas07/decimal-ts",
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.12",
+    "@types/node": "^20.11.30",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.2",
+    "typescript": "^5.4.0"
+  }
+}

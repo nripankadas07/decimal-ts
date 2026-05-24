@@ -1,10 +1,5 @@
 # decimal-ts
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Node: 18+](https://img.shields.io/badge/Node-18%2B-339933.svg)](https://nodejs.org/)
-[![TypeScript: strict](https://img.shields.io/badge/TypeScript-strict-blue.svg)](https://www.typescriptlang.org/)
-[![Tests: 174](https://img.shields.io/badge/Tests-174%20passing-brightgreen.svg)](#running-tests)
-[![Coverage: 100%](https://img.shields.io/badge/Coverage-100%25-brightgreen.svg)](#running-tests)
 
 Arbitrary-precision **fixed-point** decimal arithmetic for
 TypeScript / JavaScript. Values are stored as a `BigInt`
@@ -23,7 +18,7 @@ unless you explicitly round.
 ## Install
 
 ```bash
-npm install decimal-ts
+npm install && npm run build
 ```
 
 Node 18+ is required (uses `BigInt`).

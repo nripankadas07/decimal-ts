@@ -13,7 +13,9 @@
     "build": "tsc",
     "test": "jest",
     "test:coverage": "jest --coverage",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "demo": "npm run build && node examples/money-demo.js",
+    "benchmark": "npm run build && node scripts/benchmark.js"
   },
   "keywords": [
     "decimal",

@@ -1,160 +1,70 @@
 # decimal-ts
 
+Exact decimal arithmetic for money-style calculations in TypeScript.
 
-Arbitrary-precision **fixed-point** decimal arithmetic for
-TypeScript / JavaScript. Values are stored as a `BigInt`
-coefficient plus a signed exponent, so every operation is exact
-unless you explicitly round.
+**Thesis:** JavaScript numbers are the wrong abstraction for cents, taxes, and
+settlement. `decimal-ts` stores finite decimals as `BigInt` coefficient plus a
+base-10 exponent.
 
-- **Exact arithmetic** — `0.1 + 0.2 === 0.3` (really).
-- **Seven rounding modes** — `DOWN`, `UP`, `FLOOR`, `CEIL`,
-  `HALF_UP`, `HALF_DOWN`, `HALF_EVEN` (banker's).
-- **No floating-point in the hot path** — everything reduces to
-  `BigInt` arithmetic.
-- **Immutable** — every operation returns a fresh `Decimal`; the
-  receiver is `Object.freeze`d.
-- **Zero runtime dependencies, fully typed, strict TS config.**
-
-## Install
+## Run It In 30 Seconds
 
 ```bash
-npm install && npm run build
+npm install && npm run demo
 ```
 
-Node 18+ is required (uses `BigInt`).
+## Why Care?
 
-## Usage
+```ts
+0.1 + 0.2; // 0.30000000000000004
+Decimal.from("0.1").add("0.2").toString(); // "0.3"
+```
+
+## Example
 
 ```ts
 import { Decimal } from "decimal-ts";
 
-const a = Decimal.from("0.1");
-const b = Decimal.from("0.2");
-a.add(b).toString();              // "0.3"
-a.add(b).eq("0.3");               // true
-
-// Multiply currency by a tax rate.
-const net   = Decimal.from("99.99");
-const total = net.mul("1.20");
-total.toFixed(2);                 // "119.99"
-
-// Non-terminating division — you must pick a scale + mode.
-Decimal.from(1).div(3, 6).toString();              // "0.333333"
-Decimal.from(2).div(3, 6, "HALF_UP").toString();   // "0.666667"
-
-// Banker's rounding for statistical aggregates.
-Decimal.from("2.5").round(0, "HALF_EVEN").toString();  // "2"
-Decimal.from("3.5").round(0, "HALF_EVEN").toString();  // "4"
-
-// Compare values regardless of textual representation.
-Decimal.from("1.0").eq("1.00");   // true
-Decimal.from("100").eq("1e2");    // true
+const subtotal = Decimal.from("19.99").mul(3);
+const tax = subtotal.mul("0.0825").round(2, "HALF_UP");
+const total = subtotal.add(tax);
+console.log(total.toFixed(2));
 ```
 
-## API
+## Architecture
 
-### `Decimal`
-
-Construction:
-
-| | |
-|---|---|
-| `Decimal.from(value)` | Build from `string`, `number`, `bigint`, `Decimal`, or `{coefficient, exponent}`. |
-| `Decimal.fromParts({coefficient, exponent})` | Strict factory for the structural form. |
-| `Decimal.ZERO`, `Decimal.ONE` | Singleton constants. |
-
-Arithmetic (return new `Decimal`):
-
-| Method | Description |
-|--------|-------------|
-| `add(other)` | Exact sum. |
-| `sub(other)` | Exact difference. |
-| `mul(other)` | Exact product. |
-| `div(other, scale=20, mode='HALF_EVEN')` | Rounded quotient. Throws `DivisionByZeroError` if `other === 0`. |
-| `mod(other)` | Truncated remainder; sign matches dividend. |
-| `neg()`, `abs()` | Sign manipulation. |
-
-Rounding:
-
-| Method | Description |
-|--------|-------------|
-| `round(scale=0, mode='HALF_EVEN')` | Round to `scale` decimal places. |
-| `truncate(scale=0)` | Alias for `round(scale, 'DOWN')`. |
-| `floor(scale=0)` | Alias for `round(scale, 'FLOOR')`. |
-| `ceil(scale=0)` | Alias for `round(scale, 'CEIL')`. |
-| `rescale(exp, mode='HALF_EVEN')` | Force a specific exponent. |
-
-Comparison:
-
-| Method | Description |
-|--------|-------------|
-| `compare(other)` | Returns `-1` / `0` / `1`. |
-| `eq` / `lt` / `lte` / `gt` / `gte` | Boolean checks. Values with different scales (e.g. `1.0` vs `1.00`) compare equal when numerically equal. |
-
-Inspection:
-
-| Method | Description |
-|--------|-------------|
-| `signum()` | Returns `-1`, `0`, or `1`. |
-| `isZero()`, `isPositive()`, `isNegative()` | Sign predicates (zero is neither positive nor negative). |
-| `isInteger()` | True when the value is an integer. |
-| `normalize()` | Return a new `Decimal` with trailing-zero digits stripped. |
-
-Formatting:
-
-| Method | Description |
-|--------|-------------|
-| `toString()` | Plain decimal notation (no scientific). |
-| `toFixed(scale, mode='HALF_EVEN')` | String with exactly `scale` fractional digits. |
-| `toJSON()` | Same as `toString()` — `JSON.stringify` produces a string. |
-| `toNumber()` | Lossy conversion to `number`; overflows to `±Infinity`. |
-
-### Rounding modes
-
-```ts
-type RoundingMode =
-  | 'DOWN'       // toward zero
-  | 'UP'         // away from zero
-  | 'FLOOR'      // toward -∞
-  | 'CEIL'       // toward +∞
-  | 'HALF_UP'    // nearest, ties away from zero
-  | 'HALF_DOWN'  // nearest, ties toward zero
-  | 'HALF_EVEN'; // nearest, ties to even (banker's)
+```mermaid
+flowchart LR
+    Input --> Parser
+    Parser --> Pair["coefficient + exponent"]
+    Pair --> BigIntArithmetic
+    BigIntArithmetic --> Rounding
+    Rounding --> Formatting
 ```
 
-`ROUNDING_MODES` is a frozen `readonly` array of the seven values.
+## Correctness Notes
 
-### Errors
+- Addition, subtraction, and multiplication are exact.
+- Division requires explicit scale and rounding mode.
+- Seven rounding modes are implemented and tested.
+- JSON serialization returns strings to avoid precision loss.
 
-```
-DecimalError                      (base)
-├── InvalidDecimalError           (parse failure; .received)
-├── DivisionByZeroError           (div / mod by zero)
-├── InvalidScaleError             (negative or non-integer scale; .received)
-└── InvalidRoundingModeError      (unknown mode string; .received)
-```
+## Comparison
 
-All errors extend the native `Error`, so `instanceof Error` is true
-for every one.
+| Need | `number` | `decimal-ts` |
+|---|---|---|
+| Fast approximate math | Yes | Not the goal |
+| Exact decimal cents | No | Yes |
+| Explicit rounding policy | Manual | Built in |
+| Zero runtime deps | Yes | Yes |
 
-## Why `BigInt` instead of a high-precision float library?
-
-A `BigInt` coefficient gives us *exact* representation of every
-finite decimal value at arbitrary precision; the only place
-rounding enters is `div` and the explicit rounding helpers. That
-matches how Java's `BigDecimal` and Python's `decimal` work, and
-it's the right model for money, tax, settlement, and any other
-domain where a single off-by-one cent is unacceptable.
-
-## Running Tests
+## Development
 
 ```bash
 npm install
-npx tsc --noEmit            # strict typecheck — 0 errors
-npx jest                    # 174 tests, all green
-npx jest --coverage         # 100% statements / branches / functions / lines
+npm run typecheck
+npm test
+npm pack --dry-run
+npm run benchmark
 ```
 
-## License
-
-MIT
+See [ARCHITECTURE.md](docs/ARCHITECTURE.md), [TECHNICAL_ARTICLE.md](docs/TECHNICAL_ARTICLE.md), and [RELEASE.md](RELEASE.md).
